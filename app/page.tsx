@@ -1,6 +1,8 @@
 "use client";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Settings } from "lucide-react";
+import { GoogleContext, GoogleEditor, useGoogleCalendar, type GoogleDraft } from "./google-calendar";
+import { connectionMessages, type ConnectionResult, type DisplayEvent, type GoogleEvent } from "../lib/google/events";
 import { Editor } from "./editor";
 import { MonthGrid } from "./month-grid";
 import { TodoDay } from "./todo-day";
@@ -145,6 +147,8 @@ function Wordmark() {
 }
 
 export default function Home() {
+  const [googleDraft, setGoogleDraft] = useState<GoogleDraft | null>(null);
+  const [googleReturn, setGoogleReturn] = useState<ConnectionResult | null>(null);
   const [savedTheme, setSavedTheme] = useState<Theme | null>(null);
   const [previewTheme, setPreviewTheme] = useState<Theme | null>(null);
   const [monthGoalsOpen, setMonthGoalsOpen] = useState(false);
@@ -182,7 +186,15 @@ export default function Home() {
     document.documentElement.dataset.theme = theme ?? defaultTheme;
   }, [savedTheme, previewTheme]);
   useEffect(() => {
-    const requested = new URLSearchParams(location.search).get("day");
+    const params = new URLSearchParams(location.search);
+    const returned = params.get("google");
+    if (returned && Object.hasOwn(connectionMessages, returned)) {
+      setGoogleReturn(returned as ConnectionResult);
+      const clean = new URL(location.href);
+      clean.searchParams.delete("google");
+      history.replaceState(history.state, "", clean);
+    }
+    const requested = params.get("day");
     setDay(validDay(requested) ? requested : keyDate(new Date()));
   }, []);
   const refresh = useCallback(async () => {
@@ -240,6 +252,16 @@ export default function Home() {
     }
   }, [day, view]);
   const ready = !!query && loaded === query;
+  const google = useGoogleCalendar(month, ready && !auth);
+  function openGoogle(start: string, end: string, event?: GoogleEvent, deleting = false) {
+    const {calendarId, generation} = google.state;
+    if (!calendarId || !generation) return;
+    setGoogleDraft({calendarId,generation,day:start,last:end,event,deleting});
+  }
+  function openEvent(item: DisplayEvent, deleting = false) {
+    if (item.google) openGoogle(item.google.day,item.google.endDay,item.google,deleting);
+    else edit(item.id,item.data,deleting);
+  }
   const rows = ready ? items : [];
   function find(id: string) {
     return rows.find((r) => r.id === id);
@@ -252,6 +274,8 @@ export default function Home() {
     setEditor(find(id) ?? { id, version: 0, data });
   }
   function add() {
+    if (!google.readyToCreate) return;
+    if (google.state.calendarId) return openGoogle(day, day);
     if (ready)
       edit("event-" + crypto.randomUUID(), {
         kind: "event",
@@ -338,6 +362,8 @@ export default function Home() {
         target.dataset.event
       ) {
         e.preventDefault();
+        const external = google.items.find(item => item.id === target.dataset.event);
+        if (external) return openEvent(external, true);
         const row = find(target.dataset.event);
         if (row) edit(row.id, row.data, true);
       }
@@ -349,17 +375,15 @@ export default function Home() {
     return (
       <main className="loading">
         <Wordmark />
+        <a className="privacy-link" href="/privacy">개인정보처리방침</a>
       </main>
     );
   const date = asDate(day),
     today = keyDate(new Date());
   const cells = calendarDays(month);
-  const events = rows
-    .filter(
-      (r): r is Item & { data: EventEntry } =>
-        r.data.kind === "event" &&
-        (!filter.length || filter.includes(r.data.color)),
-    )
+  const localEvents = rows.filter((r): r is Item & { data: EventEntry } => r.data.kind === "event");
+  const events: DisplayEvent[] = [...localEvents, ...google.items]
+    .filter(r => !filter.length || filter.includes(r.data.color))
     .sort(
       (a, b) =>
         a.data.time.localeCompare(b.data.time) ||
@@ -392,7 +416,7 @@ export default function Home() {
     );
   }
   return (
-    <>
+    <GoogleContext.Provider value={google}>
       <header className="top glass-panel">
         <div className="brand">
           <img src="/diary.svg" alt="" />
@@ -497,6 +521,11 @@ export default function Home() {
             </button>
           </div>
         </div>
+        {googleReturn && <div className="notice" role="status">
+          {connectionMessages[googleReturn]}
+          <button className="plain" onClick={() => setGoogleReturn(null)} aria-label="닫기">×</button>
+        </div>}
+        {google.error && <p className="notice" role="alert">Google Calendar · {google.error} <button className="plain" onClick={()=>void google.refresh()}>새로고침</button></p>}
         {auth && (
           <p className="notice">
             <a href="/signin-with-chatgpt?return_to=/" target="_top">
@@ -517,10 +546,11 @@ export default function Home() {
                 today={today}
                 cells={cells}
                 events={events}
-                ready={ready}
+                ready={ready && google.readyToCreate}
                 color={filter[0] ?? 0}
                 onSelect={go}
-                onEdit={(r) => edit(r.id, r.data)}
+                onEdit={openEvent}
+                onGoogleCreate={google.state.calendarId ? openGoogle : undefined}
                 onChanged={refresh}
               />
               <div className="filters">
@@ -562,7 +592,7 @@ export default function Home() {
                   className="plain log-add"
                   aria-label="선택한 날짜에 일정 추가"
                   title="일정 추가"
-                  disabled={!ready}
+                  disabled={!ready || !google.readyToCreate}
                   onClick={add}
                 >
                   +
@@ -573,10 +603,10 @@ export default function Home() {
                   <button
                     key={r.id}
                     data-event={r.id}
-                    onClick={() => edit(r.id, r.data)}
+                    onClick={() => openEvent(r)}
                   >
                     <i style={{ backgroundColor: palette[r.data.color] }} />
-                    <span>{r.data.title}</span>
+                    <span>{r.data.title}{google.state.calendarId && <small>{r.google ? "Google" : "Log365"}</small>}</span>
                     <time>{r.data.time || "종일"}</time>
                   </button>
                 ))}
@@ -714,9 +744,10 @@ export default function Home() {
           />
         )}
         <div className="foot">
-          <button className="plain" onClick={() => void refresh()}>
+          <button className="plain" onClick={() => {void refresh();void google.refresh();}}>
             {status}
           </button>
+          <a className="privacy-link" href="/privacy">개인정보처리방침</a>
           <button className="plain" onClick={() => setHelp(true)}>
             키보드 단축키 <kbd>?</kbd>
           </button>
@@ -742,7 +773,11 @@ export default function Home() {
           }}
         />
       )}
+      {googleDraft && <GoogleEditor draft={googleDraft} close={()=>setGoogleDraft(null)} local={fields=>{
+        setGoogleDraft(null);
+        edit("event-"+crypto.randomUUID(),{kind:"event",title:fields.title,day:fields.day,endDay:fields.endDay,time:fields.allDay?"":fields.start,color:filter[0]??0});
+      }} />}
       {help && <Help close={() => setHelp(false)} />}
-    </>
+    </GoogleContext.Provider>
   );
 }

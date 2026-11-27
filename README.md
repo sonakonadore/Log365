@@ -12,6 +12,22 @@
 
 오른쪽 위 톱니바퀴(setting)에서 warm white, pale white, warm gray, cold black을 미리 보고 저장할 수 있다. 기본은 pale white다. 로그인하면 같은 계정의 기기에 적용되고, 로그인 전에는 현재 브라우저에 저장된다.
 
+## Google Calendar 연결
+
+Google Calendar 연동을 구성한 환경에서 Log365에 로그인한 뒤 **톱니바퀴 → Google Calendar → Google 계정 연결**을 누른다. Google에서 권한을 승인하고 Log365로 돌아오면 같은 설정에서 소유한 캘린더 하나를 선택한다. 연결과 캘린더 선택은 즉시 적용된다.
+
+연결한 뒤에는 달력 더블클릭이나 Agenda의 +로 Google 일정을 만든다. 기존 방식으로 기록하려면 입력창에서 ‘Log365에 쓰기’를 고른다. Google 일정은 선택한 캘린더의 원본을 직접 읽고 수정한다. 반복 일정과 참석자가 있는 일정은 읽기 전용이다. 시간은 서울 기준이며 종일 일정은 화면에서 마지막 날까지 포함한다. 연결 해제 후에도 Google 원본과 기존 다이어리 기록은 각각 남는다.
+
+Apple 캘린더에서도 보려면 Mac의 **캘린더 → 계정 추가 → Google**에서 같은 계정을 연결하고 캘린더 목록에서 대상 캘린더를 켠다. 이미 연결했다면 해당 캘린더의 체크 표시만 확인한다. [Google의 Apple 캘린더 연결 안내](https://support.google.com/calendar/answer/99358?hl=ko)
+
+### 개발 환경 설정
+
+1. Google Cloud에서 Calendar API를 켠다. 개인 테스트는 Google 인증 플랫폼의 대상을 외부·테스트로 두고 테스트 사용자를 등록한다. 데이터 액세스에서 `calendar.calendarlist.readonly`와 `calendar.events.owned`를 설정한다. [Google 권한 범위](https://developers.google.com/workspace/calendar/api/auth)
+2. 웹 애플리케이션 OAuth 클라이언트를 만들고 승인된 리디렉션 URI에 `http://127.0.0.1:48218/api/google-calendar/callback`을 등록한다. 서버는 Google에서 발급한 클라이언트 ID와 비밀번호를 각각 `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`으로 읽는다. [Google 웹 서버 인증 안내](https://developers.google.com/identity/protocols/oauth2/web-server)
+3. 로컬 서버의 비공개 `.dev.vars`에 위 값, `GOOGLE_REDIRECT_URI`, 임의의 32바이트를 Base64로 인코딩한 `GOOGLE_TOKEN_KEY`, `GOOGLE_CALENDAR_MODE=test`, 승인받은 캘린더 ID인 `GOOGLE_CALENDAR_TEST_ID`를 설정한다. 암호화 키는 연결이 유지되는 동안 보관한다. 배포할 때는 호스팅의 서버 비밀 설정에 넣고 해당 사이트의 HTTPS 복귀 주소를 별도로 등록한다.
+4. 로컬 D1에 마이그레이션을 순서대로 적용하고 `npm run dev -- --port 48218 --strictPort --logLevel error`로 실행한다. Google 연결용 마이그레이션은 `drizzle/0002_google_calendar_connection.sql`이다. 테스트 모드에서는 계정과 캘린더별로 이 앱에서 만든 시간 일정 한 건과 종일 일정 한 건만 다룬다. 실사용 전환은 별도로 `GOOGLE_CALENDAR_MODE=live`를 지정해야 한다.
+5. 네트워크 없이 계정 분리, 시간대, 같은 일정 수정, 저장 실패, 연결 해제를 검증하려면 `node tests/google-calendar.mjs`를 실행한다. 기기 검증에서는 Google·Apple·Log365에서 같은 일정의 수와 변경 시각을 확인한 뒤 테스트 일정을 삭제한다.
+
 ## 기록하기
 
 - 입력창 밖에서 1은 `calendar`, 2는 `goals`, 3은 `to-do`로 이동한다. 목표 편집창에서 ✓·△·×를 고른 뒤 Enter를 누르면 평가가 저장된다.

@@ -1,6 +1,7 @@
 // Vendored from @openai/sites-vite-plugin 0.2.0 (openai/sites#9).
 // See sites-vite-plugin.LICENSE for the upstream MIT license.
 import { access, cp, mkdir, rm } from "node:fs/promises";
+import { createHash, randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { resolve } from "node:path";
 import type { Plugin } from "vite";
@@ -39,9 +40,13 @@ export function sites({ mockAuth = true } = {}): Plugin {
       root = config.root;
       command = config.command;
     },
-    configureServer(server) {
+    async configureServer(server) {
       if (!mockAuth) return;
       const secure = Boolean(server.config.server.https);
+      // A preview holding real server credentials must not share its fixture
+      // identity across browsers. Store only the hash as the database owner.
+      const privatePreview = await exists(resolve(server.config.root, ".dev.vars"));
+      const cookieName = privatePreview ? "__log365_preview_session" : localCookieName;
 
       server.config.logger.info(`Sites local sign-in: ${localEmail}`);
       server.middlewares.use((request, response, next) => {
@@ -85,10 +90,10 @@ export function sites({ mockAuth = true } = {}): Plugin {
           .map((cookie) => cookie.trim())
           .filter(Boolean);
         const signInCookies = cookies
-          .filter((cookie) => cookie.startsWith(`${localCookieName}=`))
-          .map((cookie) => cookie.slice(localCookieName.length + 1));
+          .filter((cookie) => cookie.startsWith(`${cookieName}=`))
+          .map((cookie) => cookie.slice(cookieName.length + 1));
         const applicationCookies = cookies.filter(
-          (cookie) => !cookie.startsWith(`${localCookieName}=`),
+          (cookie) => !cookie.startsWith(`${cookieName}=`),
         );
         if (applicationCookies.length !== cookies.length) {
           removeHeader(request, "cookie");
@@ -104,9 +109,14 @@ export function sites({ mockAuth = true } = {}): Plugin {
 
         const signIn = url.pathname === "/signin-with-chatgpt";
         const signOut = url.pathname === "/signout-with-chatgpt";
+        const session = signInCookies.length === 1 ? signInCookies[0] : "";
+        const signedIn = privatePreview ? /^[a-f0-9]{64}$/.test(session) : session === "1";
         if (!signIn && !signOut) {
-          if (signInCookies.length === 1 && signInCookies[0] === "1") {
-            setHeader(request, "oai-authenticated-user-id", localUserId);
+          if (signedIn) {
+            const owner = privatePreview
+              ? "preview-" + createHash("sha256").update(session).digest("hex")
+              : localUserId;
+            setHeader(request, "oai-authenticated-user-id", owner);
             setHeader(request, "oai-authenticated-user-email", localEmail);
             setHeader(
               request,
@@ -161,9 +171,10 @@ export function sites({ mockAuth = true } = {}): Plugin {
           "Location",
           safeReturn(url.searchParams.get("return_to")),
         );
+        const newSession = privatePreview ? (signedIn ? session : randomBytes(32).toString("hex")) : "1";
         response.setHeader(
           "Set-Cookie",
-          `${localCookieName}=${signIn ? "1" : ""}; Path=/; ${
+          `${cookieName}=${signIn ? newSession : ""}; Path=/; ${
             signOut ? "Max-Age=0; " : ""
           }HttpOnly; SameSite=Lax${secure ? "; Secure" : ""}`,
         );

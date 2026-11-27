@@ -54,6 +54,9 @@ export function connectorPreview() {
             deny: [
               ".env",
               ".env.*",
+              "**/.dev.vars*",
+              "**/.wrangler/**",
+              "**/client_secret*.json",
               "*.{crt,pem}",
               "**/.git/**",
               "**/.sites-runtime/**",

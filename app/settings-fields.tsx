@@ -7,10 +7,11 @@ import {
   type Entry,
   type Theme,
 } from "../lib/diary";
+import { GoogleSettings } from "./google-calendar";
 import { DeviceNotifications } from "./reminder-fields";
 
 type Settings = Extract<Entry, { kind: "settings" }>;
-const sections = ["화면 테마", "알림·배점"] as const;
+const sections = ["화면 테마", "알림·배점", "Google Calendar"] as const;
 
 export function SettingsFields({
   data,
@@ -38,7 +39,7 @@ export function SettingsFields({
   function switchTab(e: KeyboardEvent<HTMLDivElement>) {
     if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
     e.preventDefault();
-    const next = e.key === "Home" ? 0 : e.key === "End" ? 1 : 1 - tab;
+    const next = e.key === "Home" ? 0 : e.key === "End" ? sections.length-1 : (tab+sections.length+(e.key==="ArrowLeft"?-1:1))%sections.length;
     const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]');
     selectTab(buttons[next], next);
   }
@@ -116,6 +117,9 @@ export function SettingsFields({
           </div>
         </div>
       )}
+      {!localOnly && <div id="settings-pane-2" role="tabpanel" aria-labelledby="settings-tab-2" hidden={tab!==2}>
+        {tab===2 && <GoogleSettings />}
+      </div>}
     </>
   );
 }

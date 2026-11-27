@@ -15,6 +15,13 @@
       "when": 1795712820569,
       "tag": "0001_event_reminders",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1795801175032,
+      "tag": "0002_google_calendar_connection",
+      "breakpoints": true
     }
   ]
 }

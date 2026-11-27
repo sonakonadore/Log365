@@ -14,6 +14,7 @@ import {
   type Recurrence,
   type Reminder,
 } from "../lib/diary";
+import type { DisplayEvent } from "../lib/google/events";
 import { EventColors, saveRecord, useEnterToSubmit } from "./editor";
 import { ReminderField } from "./reminder-fields";
 import { RepeatFields } from "./repeat-fields";
@@ -41,11 +42,12 @@ type Props = {
   day: string;
   today: string;
   cells: string[];
-  events: EventItem[];
+  events: DisplayEvent[];
   ready: boolean;
   color: number;
   onSelect: (day: string) => void;
-  onEdit: (item: EventItem) => void;
+  onEdit: (item: DisplayEvent) => void;
+  onGoogleCreate?: (day: string, endDay: string) => void;
   onChanged: () => Promise<void>;
 };
 
@@ -57,6 +59,7 @@ export function MonthGrid({
   ready,
   color,
   onSelect,
+  onGoogleCreate,
   onEdit,
   onChanged,
 }: Props) {
@@ -90,6 +93,11 @@ export function MonthGrid({
     if (!ready || busy) return;
     clearTimeout(delayedSelect.current);
     const [first, last] = [start, end].sort();
+    if (onGoogleCreate) {
+      onSelect(first);
+      onGoogleCreate(first,last);
+      return;
+    }
     const box = grid.current
       ?.querySelector('[data-day="' + start + '"]')
       ?.getBoundingClientRect();
@@ -142,11 +150,13 @@ export function MonthGrid({
     )
       return;
     const chip = (e.target as Element).closest<HTMLElement>("[data-chip]");
+    const item = events.find(r => r.id === chip?.dataset.chip);
+    if (item?.google) return;
     gesture.current = {
       pointer: e.pointerId,
       start: date,
       over: date,
-      item: events.find((r) => r.id === chip?.dataset.chip),
+      item,
       dragged: false,
     };
     suppressClick.current = false;
@@ -312,7 +322,7 @@ export function MonthGrid({
                       }
                     >
                       <i style={{ backgroundColor: palette[r.data.color] }} />
-                      <span>{r.data.title}</span>
+                      <span>{r.google ? "Google · " : ""}{r.data.title}</span>
                     </span>
                   );
                 })}

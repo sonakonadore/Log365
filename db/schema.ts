@@ -44,3 +44,17 @@ export const pushDeliveries = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.device, t.event, t.occurrence] })],
 );
+
+export const googleLinks = sqliteTable("google_calendar_links", {
+  owner: text("owner").primaryKey(),
+  generation: text("generation").notNull(),
+  tokens: text("tokens").notNull(),
+  calendar: text("calendar"),
+});
+
+export const googleStates = sqliteTable("google_calendar_states", {
+  owner: text("owner").primaryKey(),
+  digest: text("digest").notNull(),
+  verifier: text("verifier").notNull(),
+  expires: integer("expires").notNull(),
+});

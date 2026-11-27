@@ -1018,3 +1018,13 @@ dialog .colorchoices button i {
     padding: 0.65rem 0.8rem;
   }
 }
+.google-settings p { color: var(--muted); font-size: .83rem; margin: .6rem 0; }
+.google-settings select { display: block; width: 100%; min-height: 2.25rem; margin: .4rem 0; color: var(--ink); background: var(--surface); border: 1px solid var(--control-border); border-radius: 5px; }
+.google-allday { display: flex; align-items: center; gap: .45rem; }
+.google-allday input { width: auto; accent-color: var(--ink); }
+.privacy-link { color: var(--muted); font-size: .78rem; text-underline-offset: .18em; }
+.privacy-page { max-width: 42rem; margin: 0 auto; padding: 3rem 1.25rem; line-height: 1.7; }
+.privacy-page h1 { font-size: 1.8rem; }
+.privacy-page h2 { margin: 2rem 0 .5rem; font-size: 1.12rem; }
+.privacy-page p { margin: .5rem 0; overflow-wrap: anywhere; }
+.privacy-page a { color: inherit; text-underline-offset: .18em; }

@@ -29,6 +29,7 @@ yarn-error.log*
 # Local environment and keys
 .env*
 .dev.vars*
+client_secret*.json
 *.pem
 
 # Checkout-local tool state
