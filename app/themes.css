@@ -1,0 +1,80 @@
+:root, [data-theme] {
+  color-scheme: light;
+  --pale-white: #f9f9fc;
+  --warm-white: #fbfaf7;
+  --canvas: var(--pale-white);
+  --surface: #fff;
+  --ink: #272827;
+  --muted: #656663;
+  --line: #dcdde1;
+  --wash: #f1f2f4;
+  --charcoal: #34373a;
+  --band-bg: var(--charcoal);
+  --band-ink: #fafafa;
+  --hover: #f2f3ef;
+  --outside: #737472;
+  --control-border: #bfc2bb;
+  --glass-edge: #e5e6ea;
+  --glint: white;
+  --glint-bottom: rgb(255 255 255 / 85%);
+  --selection-fill: #f4f5f8;
+  --selection-edge: #494b50;
+  --logo-filter: none;
+  --swatch-light: transparent;
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%23656663' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+[data-theme="warm-white"] {
+  --canvas: var(--warm-white);
+  --surface: #fffefa;
+  --ink: #2b2925;
+  --muted: #68645c;
+  --line: #dfdcd4;
+  --wash: #f3f0e9;
+  --charcoal: #393731;
+  --hover: #f1eee6;
+  --outside: #767168;
+  --control-border: #c6c1b7;
+  --glass-edge: #e7e3da;
+  --selection-fill: #f6f3ed;
+  --selection-edge: #504b41;
+}
+[data-theme="warm-gray"], [data-theme="cold-black"] {
+  color-scheme: dark;
+  --band-ink: var(--charcoal);
+  --selection-edge: var(--band-bg);
+  --glint: rgb(255 255 255 / 13%);
+  --glint-bottom: rgb(255 255 255 / 4%);
+  --logo-filter: invert(1);
+  --swatch-light: rgb(255 255 255 / 12%);
+  --chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='m1 1 4 4 4-4' fill='none' stroke='%23d4d5d6' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+[data-theme="warm-gray"] {
+  --canvas: #47423e;
+  --surface: #534e49;
+  --ink: var(--warm-white);
+  --muted: #dfd7cd;
+  --line: #746c64;
+  --wash: #615a53;
+  --charcoal: #302c29;
+  --band-bg: #efe8df;
+  --hover: #69615a;
+  --outside: #ccc3b9;
+  --control-border: #8d847a;
+  --glass-edge: #69615a;
+  --selection-fill: #635b54;
+}
+[data-theme="cold-black"] {
+  --canvas: #111418;
+  --surface: #1b2026;
+  --ink: var(--pale-white);
+  --muted: #b9c2cc;
+  --line: #3b434c;
+  --wash: #2c333c;
+  --charcoal: #0c0f13;
+  --band-bg: var(--pale-white);
+  --hover: #343c47;
+  --outside: #98a3af;
+  --control-border: #626e7b;
+  --glass-edge: #363d46;
+  --selection-fill: #2b333d;
+}

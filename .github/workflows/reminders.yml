@@ -1,0 +1,30 @@
+name: Log365 reminders
+on:
+  schedule:
+    - cron: "2-59/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [".github/workflows/reminders.yml"]
+permissions:
+  id-token: write
+jobs:
+  deliver:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Check due reminders
+        shell: bash
+        env:
+          DISPATCH_URL: https://log365.sonakonadore.chatgpt.site/api/reminders/dispatch
+        run: |
+          set -euo pipefail
+          stop=$((SECONDS + 300))
+          while true; do
+            jwt=$(curl -fsSG -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" --data-urlencode "audience=urn:log365:reminder-dispatch" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -er .value)
+            echo "::add-mask::$jwt"
+            response=$(curl -fsS --retry 2 --max-time 45 -X POST -H "Authorization: Bearer $jwt" "$DISPATCH_URL")
+            delay=$(jq -er '.nextSeconds // 0' <<<"$response")
+            if (( delay < 1 || SECONDS + delay > stop )); then break; fi
+            sleep "$delay"
+          done
